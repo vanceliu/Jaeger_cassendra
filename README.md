@@ -1,5 +1,5 @@
 # Jaeger-cassendra
-Examples on instrumenting python FAST-API servers.  
+Examples on instrumenting python servers.  
 
 
 ## Quick Start
