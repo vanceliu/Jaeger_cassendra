@@ -45,3 +45,7 @@ The opentelemetry-bootstrap -a install command reads through the list of package
     OTEL_METRICS_EXPORTER=none
 
 set OTEL_METRICS_EXPORTER to none if not use metric
+
+#### V. Run opentelemetry
+
+    $ opentelemetry-instrument python3 start.py
