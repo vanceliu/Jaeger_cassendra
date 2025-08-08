@@ -1,0 +1,50 @@
+# 1. Receivers: 定義如何接收數據
+receivers:
+  otlp: # OTLP 接收器是標準
+    protocols:
+      grpc: # 接收 Traces 和 Metrics (port 4317)
+        endpoint: 0.0.0.0:4317
+      http: # 接收 Logs (port 4318)
+        endpoint: 0.0.0.0:4318
+
+# 2. Processors: 定義如何處理數據 (可選，但建議)
+processors:
+  batch: # 將數據打包成批次發送，提升效能
+  memory_limiter: # 防止 Collector 耗盡記憶體
+    check_interval: 1s
+    limit_percentage: 75
+    spike_limit_percentage: 15
+
+# 3. Exporters: 定義數據要發送到哪裡
+exporters:
+  # 發送到 Jaeger
+  otlp/jaeger:
+    endpoint: jaeger:4317 # 連接到 docker-compose 內的 jaeger 服務
+    tls:
+      insecure: true
+
+  # # 發送到 Loki
+  # loki:
+  #   endpoint: http://loki:3100/loki/api/v1/push # 連接到 loki 服務
+    
+  # 為 Prometheus 提供一個端點，讓 Prometheus 來抓取
+  prometheus:
+    endpoint: 0.0.0.0:8889 # Collector 會在 8889 port 上暴露一個 /metrics 端點
+
+# 4. Service: 將 Receivers, Processors, Exporters 組裝成 pipeline
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/jaeger]
+    
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheus] # Metrics 會被 Prometheus Exporter 處理
+      
+    # logs:
+    #   receivers: [otlp]
+    #   processors: [memory_limiter, batch]
+    #   exporters: [loki]
