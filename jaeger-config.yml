@@ -1,0 +1,64 @@
+# Jaeger configuration using OpenTelemetry Collector format
+# Defines receivers, processors, exporters, and service pipelines.
+
+# Receivers accept data in specific formats.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+  jaeger:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:14250"
+      thrift_http:
+        endpoint: "0.0.0.0:14268"
+      thrift_compact:
+        endpoint: "0.0.0.0:6831"
+
+# Exporters send data to one or more backends.
+exporters:
+  jaeger_storage_exporter:
+    trace_storage: some_storage
+  debug: # Changed from 'logging' to 'debug'
+    verbosity: detailed
+
+# Processors can transform data before it's exported.
+processors:
+  batch:
+
+# Extensions provide capabilities like storage.
+extensions:
+  healthcheckv2: {}
+  jaeger_storage:
+    backends:
+      some_storage:
+        cassandra:
+          schema: 
+            keyspace: "jaeger_v1_dc1"
+            create: "${env:CASSANDRA_CREATE_SCHEMA:-true}"
+          connection:
+            servers: ["cassandra:9042"]
+            auth: 
+              basic:
+                username: "cassandra"
+                password: "cassandra"
+            tls:
+              insecure: true
+  jaeger_query:
+    storage:
+      traces: some_storage
+    ui:
+      config_file: /etc/jaeger/ui_config.json
+
+
+# Service pipelines define how data flows from receivers to exporters.
+service:
+  extensions: [healthcheckv2, jaeger_storage, jaeger_query]
+  pipelines:
+    traces:
+      receivers: [otlp, jaeger]
+      processors: [batch]
+      exporters: [jaeger_storage_exporter, debug] # Changed from 'logging' to 'debug'
